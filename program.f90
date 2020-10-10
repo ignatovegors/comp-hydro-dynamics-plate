@@ -1,14 +1,14 @@
 PROGRAM  platePrandtl
-IMPLICIT NONE
-INTEGER(2), PARAMETER :: io = 12
-INTEGER(4) :: ni, nj, niter
-INTEGER(4) :: i, j
-REAL(8) :: l, h, dx, dy, u_0, nu
-REAL(8), ALLOCATABLE :: x_node(:,:), y_node(:,:)
-REAL(8), ALLOCATABLE :: x_cell(:,:), y_cell(:,:)
-REAL(8), ALLOCATABLE :: u_c(:,:), v_c(:,:), p_c(:,:)
-REAL(8), ALLOCATABLE :: u_n(:,:), v_n(:,:), p_n(:,:)
-REAL(8), DIMENSION(3) :: res
+    IMPLICIT NONE
+    INTEGER(2), PARAMETER :: io = 12
+    INTEGER(4) :: ni, nj, niter
+    INTEGER(4) :: i, j
+    REAL(8) :: l, h, dx, dy, u_0, nu
+    REAL(8), ALLOCATABLE :: x_node(:,:), y_node(:,:)
+    REAL(8), ALLOCATABLE :: x_cell(:,:), y_cell(:,:)
+    REAL(8), ALLOCATABLE :: u_c(:,:), v_c(:,:), p_c(:,:)
+    REAL(8), ALLOCATABLE :: u_n(:,:), v_n(:,:), p_n(:,:)
+    REAL(8), DIMENSION(3) :: res
 
     CALL DataInput(io, l, h, ni, nj, u_0, nu)
 
@@ -30,8 +30,6 @@ REAL(8), DIMENSION(3) :: res
     Call InitialConditionsPrandtl(ni, nj, u_0, u_n)
 
     CALL BoundaryConditionsPrandtl(ni, nj, u_0, u_n, v_n, p_n)
-
-    CALL ThomasAlgorithm(3, (/0d0, 1d0, 2d0/), (/1d0, 2d0, 3d0/), (/1d0, 2d0, 0d0/), (/1d0, 1d0, 1d0/), res)
 
     !****************** Solve equations ********************       
 
@@ -62,12 +60,12 @@ END PROGRAM
 
 
 SUBROUTINE DataInput(io, l, h, ni, nj, u_0, nu)
-IMPLICIT NONE
-INTEGER(2) :: io
-INTEGER(4) :: ni, nj
-REAL(8) :: l, h, u_0, nu
-INTENT(IN) io
-INTENT(OUT) l, h, ni, nj, u_0, nu
+    IMPLICIT NONE
+    INTEGER(2) :: io
+    INTEGER(4) :: ni, nj
+    REAL(8) :: l, h, u_0, nu
+    INTENT(IN) io
+    INTENT(OUT) l, h, ni, nj, u_0, nu
 
     WRITE(*,*) 'READING INPUT FILE'
     OPEN(io,FILE='INPUT.TXT')
@@ -80,17 +78,17 @@ INTENT(OUT) l, h, ni, nj, u_0, nu
     CLOSE(io)
     WRITE(*,*) 'SUCCESS'
 
-END SUBROUTINE
+    END SUBROUTINE
 
 
 SUBROUTINE MeshMaking(ni, nj, l, h, dx, dy, x_node, y_node, x_cell, y_cell)
-IMPLICIT NONE
-INTEGER(4) :: ni, nj, i, j
-REAL(8) :: l, h, dx, dy
-REAL(8), DIMENSION(ni,nj) :: x_node, y_node
-REAL(8), DIMENSION(0:ni, 0:nj) :: x_cell, y_cell
-INTENT(IN) l, h, ni, nj
-INTENT(OUT) dx, dy, x_node, y_node, x_cell, y_cell
+    IMPLICIT NONE
+    INTEGER(4) :: ni, nj, i, j
+    REAL(8) :: l, h, dx, dy
+    REAL(8), DIMENSION(ni,nj) :: x_node, y_node
+    REAL(8), DIMENSION(0:ni, 0:nj) :: x_cell, y_cell
+    INTENT(IN) l, h, ni, nj
+    INTENT(OUT) dx, dy, x_node, y_node, x_cell, y_cell
 
     WRITE(*,*) 'MESH MAKING'
 
@@ -111,16 +109,16 @@ INTENT(OUT) dx, dy, x_node, y_node, x_cell, y_cell
 
     WRITE(*,*) 'SUCCESS'
 
-END SUBROUTINE
+    END SUBROUTINE
 
 
 SUBROUTINE InitialConditionsPrandtl(ni, nj, u_0, u)
-IMPLICIT NONE
-INTEGER(4) :: ni, nj
-REAL(8) :: u_0
-REAL(8), DIMENSION(ni,nj) :: u
-INTENT(IN) ni, nj, u_0
-INTENT(OUT) u
+    IMPLICIT NONE
+    INTEGER(4) :: ni, nj
+    REAL(8) :: u_0
+    REAL(8), DIMENSION(ni,nj) :: u
+    INTENT(IN) ni, nj, u_0
+    INTENT(OUT) u
 
     WRITE(*,*) 'INITIAL CONDITIONS APPLYING (PRANDTL)'
     
@@ -128,16 +126,16 @@ INTENT(OUT) u
 
     WRITE(*,*) 'SUCCESS'
     
-END SUBROUTINE
+    END SUBROUTINE
 
 
 SUBROUTINE BoundaryConditionsPrandtl(ni, nj, u_0, u, v, p)
-IMPLICIT NONE
-INTEGER(4) :: ni, nj
-REAL(8) :: u_0
-REAL(8), DIMENSION(ni,nj) :: u, v, p
-INTENT(IN) ni, nj, u_0
-INTENT(OUT) u, v, p
+    IMPLICIT NONE
+    INTEGER(4) :: ni, nj
+    REAL(8) :: u_0
+    REAL(8), DIMENSION(ni,nj) :: u, v, p
+    INTENT(IN) ni, nj, u_0
+    INTENT(OUT) u, v, p
 
     WRITE(*,*) 'BOUNDARY CONDITIONS APPLYING (PRANDTL)'
     
@@ -148,18 +146,18 @@ INTENT(OUT) u, v, p
 
     WRITE(*,*) 'SUCCESS'
     
-END SUBROUTINE
+    END SUBROUTINE
 
 
 SUBROUTINE ThomasAlgorithm(kmax, a, b, c, d, res)
-! Solution of tridiagonal system 
-! a_{k} * x_{k - 1} + b_{k} * x_{k} + c_{k} * x_{k + 1} = d_{k}
-! with kmax unknowns (a_{1} = 0, c_{kmax} = 0)
-IMPLICIT NONE
-INTEGER(4) :: k, kmax
-REAL(8), DIMENSION(kmax) :: a, b, c, d, alpha, beta, res
-INTENT(IN) kmax, a, b, c, d
-INTENT(OUT) res
+    ! Solution of tridiagonal system 
+    ! a_{k} * x_{k - 1} + b_{k} * x_{k} + c_{k} * x_{k + 1} = d_{k}
+    ! with kmax unknowns (a_{1} = 0, c_{kmax} = 0)
+    IMPLICIT NONE
+    INTEGER(4) :: k, kmax
+    REAL(8), DIMENSION(kmax) :: a, b, c, d, alpha, beta, res
+    INTENT(IN) kmax, a, b, c, d
+    INTENT(OUT) res
    
     alpha(2) = - c(1) / b(1)
     beta(2) = d(1) / b(1)
@@ -175,18 +173,17 @@ INTENT(OUT) res
         res(k) = alpha(k + 1) * res(k + 1) + beta(k + 1)
     END DO
 
-    WRITE(*,*) res
+    END SUBROUTINE
 
-END SUBROUTINE
 
 SUBROUTINE OutputFieldsCell(io, ni, nj, x, y, u, v, p)
-IMPLICIT NONE
-INTEGER(2) :: io
-INTEGER(4) :: ni, nj
-REAL(8), DIMENSION(ni,nj) :: x, y
-REAL(8), DIMENSION(0:ni, 0:nj) :: u, v, p
-INTENT(IN) io, ni, nj, x, y, u, v, p
-    
+    IMPLICIT NONE
+    INTEGER(2) :: io
+    INTEGER(4) :: ni, nj
+    REAL(8), DIMENSION(ni,nj) :: x, y
+    REAL(8), DIMENSION(0:ni, 0:nj) :: u, v, p
+    INTENT(IN) io, ni, nj, x, y, u, v, p
+        
     WRITE(*,*) 'RESULTS OUTPUT (PRANDTL)' 
     OPEN(io, FILE='RES_PR.PLT')
     WRITE(io,*) 'VARIABLES = "X", "Y", "U", "V", "P"' 
@@ -199,16 +196,16 @@ INTENT(IN) io, ni, nj, x, y, u, v, p
     CLOSE(io)
     WRITE(*,*) 'SUCCESS'
 
-END SUBROUTINE 
+    END SUBROUTINE 
 
 
 SUBROUTINE OutputFieldsNode(io, ni, nj, x, y, u, v, p)
-IMPLICIT NONE
-INTEGER(2) :: io
-INTEGER(4) :: ni, nj
-REAL(8), DIMENSION(ni,nj) :: x, y
-REAL(8), DIMENSION(ni,nj) :: u, v, p
-INTENT(IN) io, ni, nj, x, y, u, v, p
+    IMPLICIT NONE
+    INTEGER(2) :: io
+    INTEGER(4) :: ni, nj
+    REAL(8), DIMENSION(ni,nj) :: x, y
+    REAL(8), DIMENSION(ni,nj) :: u, v, p
+    INTENT(IN) io, ni, nj, x, y, u, v, p
     
     WRITE(*,*) 'RESULTS OUTPUT (NAVIER-STOKES) ' 
     OPEN(io,FILE='RES_NS.PLT')
@@ -222,4 +219,4 @@ INTENT(IN) io, ni, nj, x, y, u, v, p
     CLOSE(io)
     WRITE(*,*) 'SUCCESS'
 
-END  SUBROUTINE 
+    END  SUBROUTINE 
