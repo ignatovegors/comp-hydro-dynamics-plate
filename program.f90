@@ -3,13 +3,14 @@ IMPLICIT NONE
 INTEGER(2), PARAMETER :: io = 12
 INTEGER(4) :: ni, nj, niter
 INTEGER(4) :: i, j
-REAL(8) :: l, h, dx, dy, u_0
+REAL(8) :: l, h, dx, dy, u_0, nu
 REAL(8), ALLOCATABLE :: x_node(:,:), y_node(:,:)
 REAL(8), ALLOCATABLE :: x_cell(:,:), y_cell(:,:)
 REAL(8), ALLOCATABLE :: u_c(:,:), v_c(:,:), p_c(:,:)
 REAL(8), ALLOCATABLE :: u_n(:,:), v_n(:,:), p_n(:,:)
+REAL(8), DIMENSION(3) :: res
 
-    CALL DataInput(io, l, h, ni, nj, u_0)
+    CALL DataInput(io, l, h, ni, nj, u_0, nu)
 
     ALLOCATE(x_node(ni,nj))
     ALLOCATE(y_node(ni,nj))
@@ -30,10 +31,13 @@ REAL(8), ALLOCATABLE :: u_n(:,:), v_n(:,:), p_n(:,:)
 
     CALL BoundaryConditionsPrandtl(ni, nj, u_0, u_n, v_n, p_n)
 
+    CALL ThomasAlgorithm(3, (/0d0, 1d0, 2d0/), (/1d0, 2d0, 3d0/), (/1d0, 2d0, 0d0/), (/1d0, 1d0, 1d0/), res)
 
     !****************** Solve equations ********************       
 
     ! Prandtl
+
+    !*******************************************************
 
     ! Navier - Stokes
 
@@ -57,13 +61,13 @@ REAL(8), ALLOCATABLE :: u_n(:,:), v_n(:,:), p_n(:,:)
 END PROGRAM
 
 
-SUBROUTINE DataInput(io, l, h, ni, nj, u_0)
+SUBROUTINE DataInput(io, l, h, ni, nj, u_0, nu)
 IMPLICIT NONE
 INTEGER(2) :: io
 INTEGER(4) :: ni, nj
-REAL(8) :: l, h, u_0
+REAL(8) :: l, h, u_0, nu
 INTENT(IN) io
-INTENT(OUT) l, h, ni, nj, u_0
+INTENT(OUT) l, h, ni, nj, u_0, nu
 
     WRITE(*,*) 'READING INPUT FILE'
     OPEN(io,FILE='INPUT.TXT')
@@ -72,6 +76,7 @@ INTENT(OUT) l, h, ni, nj, u_0
     READ(io,*) ni
     READ(io,*) nj
     READ(io,*) u_0
+    READ(io,*) nu
     CLOSE(io)
     WRITE(*,*) 'SUCCESS'
 
@@ -145,6 +150,34 @@ INTENT(OUT) u, v, p
     
 END SUBROUTINE
 
+
+SUBROUTINE ThomasAlgorithm(kmax, a, b, c, d, res)
+! Solution of tridiagonal system 
+! a_{k} * x_{k - 1} + b_{k} * x_{k} + c_{k} * x_{k + 1} = d_{k}
+! with kmax unknowns (a_{1} = 0, c_{kmax} = 0)
+IMPLICIT NONE
+INTEGER(4) :: k, kmax
+REAL(8), DIMENSION(kmax) :: a, b, c, d, alpha, beta, res
+INTENT(IN) kmax, a, b, c, d
+INTENT(OUT) res
+   
+    alpha(2) = - c(1) / b(1)
+    beta(2) = d(1) / b(1)
+
+    DO k = 2, kmax - 1
+        alpha(k + 1) = - c(k) / (b(k) + a(k) * alpha(k))
+        beta(k + 1) = (d(k) - a(k) * beta(k)) / (b(k) + a(k) * alpha(k))
+    END DO
+
+    res(kmax) = (d(k) - a(k) * beta(k)) / (b(k) + a(k) * alpha(k))
+
+    DO k = kmax - 1, 1, -1
+        res(k) = alpha(k + 1) * res(k + 1) + beta(k + 1)
+    END DO
+
+    WRITE(*,*) res
+
+END SUBROUTINE
 
 SUBROUTINE OutputFieldsCell(io, ni, nj, x, y, u, v, p)
 IMPLICIT NONE
