@@ -1,6 +1,5 @@
 PROGRAM  platePrandtlNavierStokes
     IMPLICIT NONE
-    LOGICAL(1), EXTERNAL :: ConvergenceCheck
     INTEGER(2), PARAMETER :: io = 12
     INTEGER(4) :: ni, nj, niter
     INTEGER(4) :: i, j, s, s_max
@@ -9,7 +8,6 @@ PROGRAM  platePrandtlNavierStokes
     REAL(8), ALLOCATABLE :: x_cell(:,:), y_cell(:,:)
     REAL(8), ALLOCATABLE :: u_c(:,:), v_c(:,:), p_c(:,:)
     REAL(8), ALLOCATABLE :: u_n(:,:), v_n(:,:), p_n(:,:)
-    REAL(8), ALLOCATABLE :: u_temp(:), v_temp(:), a(:), b(:), c(:), d(:)
 
     CALL DataInput(io, l, h, ni, nj, u_0, nu, s_max, eps)
 
@@ -28,62 +26,13 @@ PROGRAM  platePrandtlNavierStokes
 
     CALL MeshMaking(ni, nj, l, h, dx, dy, x_node, y_node, x_cell, y_cell)
 
-    Call InitialConditionsPrandtl(ni, nj, u_0, u_n, p_n)
+    CALL InitialConditionsPrandtl(ni, nj, u_0, u_n, p_n)
 
-    CALL BoundaryConditionsPrandtl(ni, nj, u_0, u_n, v_n)
-
-
-    !****************** Solve equations ********************       
-    ALLOCATE(u_temp(nj))
-    ALLOCATE(v_temp(nj))
-    ALLOCATE(a(nj))
-    ALLOCATE(b(nj))
-    ALLOCATE(c(nj))
-    ALLOCATE(d(nj))
+    CALL BoundaryConditionsPrandtl(ni, nj, u_0, u_n, v_n)   
     
-    DO i = 2, ni
-            
-        u_temp = u_n(i - 1, :)
-        v_temp = v_n(i - 1, :)
+    CALL PrandtlSolver(ni, nj, s_max, dx, dy, nu, eps, u_0, u_n, v_n)
 
-        DO s = 1, s_max
-
-            a(1) = 0D0
-            b(1) = 1D0
-            c(1) = 0D0
-            d(1) = 0D0
-
-            DO j = 2, nj - 1
-                a(j) = - v_temp(j - 1) / (2D0 * dy) - nu / dy**2
-                b(j) = u_temp(j) / dx + 2D0 * nu / dy**2
-                c(j) = v_temp(j + 1) / (2D0 * dy) - nu / dy**2
-                d(j) = u_n(i - 1, j)**2D0 / dx
-            END DO
-
-            a(nj) = 0D0
-            b(nj) = 1D0
-            c(nj) = 0D0
-            d(nj) = u_0
-
-            CALL ThomasAlgorithm(nj, a, b, c, d, u_n(i, :))
-
-            DO j = 2, nj
-                v_n(i,j) = v_n(i, j - 1) - dy / (2 * dx) * (u_n(i,j) - u_n(i - 1, j) + u_n(i, j - 1) - u_n(i - 1, j - 1))
-            END DO    
-            
-            IF ((ConvergenceCheck(u_n(i, :), u_temp, nj, eps)) .AND. (ConvergenceCheck(v_n(i, :), v_temp, nj, eps))) THEN
-                WRITE(*,*) 'SOLUTION CONVERGED, NODE №', I 
-                EXIT 
-            END IF
-
-            u_temp = u_n(i, :)
-            v_temp = v_n(i, :)
-
-        END DO
-
-    END DO
-
-    !*******************************************************
+    !****************** Solve equations ********************
 
     ! Navier - Stokes
 
@@ -231,6 +180,64 @@ SUBROUTINE ThomasAlgorithm(k_max, a, b, c, d, res)
     DO k = k_max - 1, 1, -1
         res(k) = alpha(k + 1) * res(k + 1) + beta(k + 1)
     END DO
+
+    END SUBROUTINE
+
+
+SUBROUTINE PrandtlSolver(ni, nj, s_max, dx, dy, nu, eps, u_0, u_n, v_n)
+    ! Solver for Prandtl (Simplified Navier-Stokes) equations system
+    IMPLICIT NONE
+    LOGICAL(1), EXTERNAL :: ConvergenceCheck
+    INTEGER(4) :: i, j, s, ni, nj, s_max
+    REAL(8) :: dx, dy, nu, eps, u_0
+    REAL(8), DIMENSION(ni,nj) :: u_n, v_n
+    REAL(8), DIMENSION(nj) :: u_temp, v_temp, a, b, c, d
+
+    WRITE(*,*) 'SOLVING EQUATIONS'
+
+    DO i = 2, ni
+            
+        u_temp = u_n(i - 1, :)
+        v_temp = v_n(i - 1, :)
+
+        DO s = 1, s_max
+
+            a(1) = 0D0
+            b(1) = 1D0
+            c(1) = 0D0
+            d(1) = 0D0
+
+            DO j = 2, nj - 1
+                a(j) = - v_temp(j - 1) / (2D0 * dy) - nu / dy**2
+                b(j) = u_temp(j) / dx + 2D0 * nu / dy**2
+                c(j) = v_temp(j + 1) / (2D0 * dy) - nu / dy**2
+                d(j) = u_n(i - 1, j)**2D0 / dx
+            END DO
+
+            a(nj) = 0D0
+            b(nj) = 1D0
+            c(nj) = 0D0
+            d(nj) = u_0
+
+            CALL ThomasAlgorithm(nj, a, b, c, d, u_n(i, :))
+
+            DO j = 2, nj
+                v_n(i,j) = v_n(i, j - 1) - dy / (2 * dx) * (u_n(i,j) - u_n(i - 1, j) + u_n(i, j - 1) - u_n(i - 1, j - 1))
+            END DO    
+            
+            IF ((ConvergenceCheck(u_n(i, :), u_temp, nj, eps)) .AND. (ConvergenceCheck(v_n(i, :), v_temp, nj, eps))) THEN
+                WRITE(*,*) 'SOLUTION CONVERGED, NODE №', I 
+                EXIT 
+            END IF
+
+            u_temp = u_n(i, :)
+            v_temp = v_n(i, :)
+
+        END DO
+
+    END DO
+
+    WRITE(*,*) 'SUCCESS'
 
     END SUBROUTINE
 
