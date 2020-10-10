@@ -26,6 +26,8 @@ REAL(8), ALLOCATABLE :: u_n(:,:), v_n(:,:), p_n(:,:)
 
     CALL MeshMaking(ni, nj, l, h, dx, dy, x_node, y_node, x_cell, y_cell)
 
+    Call InitialConditionsPrandtl(ni, nj, u_0, u_n)
+
     CALL BoundaryConditionsPrandtl(ni, nj, u_0, u_n, v_n, p_n)
 
 
@@ -40,6 +42,17 @@ REAL(8), ALLOCATABLE :: u_n(:,:), v_n(:,:), p_n(:,:)
     CALL OutputFieldsNode(io, ni, nj, x_node, y_node, u_n, v_n, p_n)
 
     CALL OutputFieldsCell(io, ni, nj, x_cell, y_cell, u_c, v_c, p_c)
+
+    DEALLOCATE(x_node)
+    DEALLOCATE(y_node)
+    DEALLOCATE(x_cell)
+    DEALLOCATE(y_cell)
+    DEALLOCATE(u_c)
+    DEALLOCATE(v_c)
+    DEALLOCATE(p_c)
+    DEALLOCATE(u_n)   
+    DEALLOCATE(v_n)   
+    DEALLOCATE(p_n)
 
 END PROGRAM
 
@@ -93,6 +106,23 @@ INTENT(OUT) dx, dy, x_node, y_node, x_cell, y_cell
 
     WRITE(*,*) 'SUCCESS'
 
+END SUBROUTINE
+
+
+SUBROUTINE InitialConditionsPrandtl(ni, nj, u_0, u)
+IMPLICIT NONE
+INTEGER(4) :: ni, nj
+REAL(8) :: u_0
+REAL(8), DIMENSION(ni,nj) :: u
+INTENT(IN) ni, nj, u_0
+INTENT(OUT) u
+
+    WRITE(*,*) 'INITIAL CONDITIONS APPLYING (PRANDTL)'
+    
+    u(1, 1:nj) = u_0
+
+    WRITE(*,*) 'SUCCESS'
+    
 END SUBROUTINE
 
 
