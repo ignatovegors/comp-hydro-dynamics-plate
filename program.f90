@@ -1,132 +1,129 @@
-        PROGRAM  Pr
-        IMPLICIT NONE
- 
-        INTEGER, PARAMETER:: IO = 12 ! input-output unit
-        INTEGER NI, NJ, NITER
-        INTEGER I,J
-        REAL L,H,dx,dy
-        REAL,ALLOCATABLE :: X_Node(:,:),Y_Node(:,:)
-        REAL,ALLOCATABLE :: X_Cell(:,:),Y_Cell(:,:)
-        REAL,ALLOCATABLE :: U_c(:,:),V_c(:,:),P_c(:,:)
-        REAL,ALLOCATABLE :: U_n(:,:),V_n(:,:),P_n(:,:)
+PROGRAM  platePrandtl
+IMPLICIT NONE
+INTEGER(2), PARAMETER :: io = 12
+INTEGER(4) :: ni, nj, niter
+INTEGER(4) :: i, j
+REAL(8) :: l, h, dx, dy
+REAL(8), ALLOCATABLE :: x_node(:,:), y_node(:,:)
+REAL(8), ALLOCATABLE :: x_cell(:,:), y_cell(:,:)
+REAL(8), ALLOCATABLE :: u_c(:,:), v_c(:,:), p_c(:,:)
+REAL(8), ALLOCATABLE :: u_n(:,:), v_n(:,:), p_n(:,:)
 
-        write(*,*) 'Read input file'
-        open(IO,FILE='Input.txt')
-        read(IO,*) L
-        read(IO,*) H
-        read(IO,*) NI
-        read(IO,*) NJ
-        close(IO)
-   
-        allocate(X_Node(NI,NJ)) ! mesh nodes X-coordinates
-        allocate(Y_Node(NI,NJ)) ! mesh nodes Y-coordinates
-        allocate(X_Cell(0:NI,0:NJ)) ! Cell Centers
-        allocate(Y_Cell(0:NI,0:NJ)) ! Cell Centers
+    WRITE(*,*) 'READING INPUT FILE'
+    OPEN(io,FILE='INPUT.TXT')
+    READ(io,*) l
+    READ(io,*) h
+    READ(io,*) ni
+    READ(io,*) nj
+    CLOSE(io)
+    WRITE(*,*) 'SUCCESS'
 
-!*******************  Cell-centered variables **********
-        allocate(U_c(0:NI,0:NJ))   ! Velocity U
-        allocate(V_c(0:NI,0:NJ))   ! Velocity V
-        allocate(P_c(0:NI,0:NJ))   ! Pressure
+    ALLOCATE(x_node(ni,nj))
+    ALLOCATE(y_node(ni,nj))
+    ALLOCATE(x_cell(0:ni, 0:nj))
+    ALLOCATE(y_cell(0:ni, 0:nj))
 
-!*******************  Node variables ******************
-        allocate(U_n(NI,NJ))   ! Velocity U
-        allocate(V_n(NI,NJ))   ! Velocity V
-        allocate(P_n(NI,NJ))   ! Pressure
+    ALLOCATE(u_c(0:ni, 0:nj))
+    ALLOCATE(v_c(0:ni, 0:nj))
+    ALLOCATE(p_c(0:ni, 0:nj))
 
-        dx=L/(NI-1)
-        dy=H/(NJ-1)
+    ALLOCATE(u_n(ni,nj))   
+    ALLOCATE(v_n(ni,nj))   
+    ALLOCATE(p_n(ni,nj))   
 
-        do I=1,NI
-          do J=1,NJ
-            X_Node(I,J)=(I-1)*dx
-            Y_Node(I,J)=(J-1)*dy
-          end do
-        end do
+    dx = l / (ni - 1)
+    dy = h / (nj - 1)
 
-        X_Cell(0,1:NJ)=-dx/2
-        Y_Cell(0,1:NJ)=Y_Node(1,1:NJ)+dy/2
-        X_Cell(1:NI,0)=X_Node(1:NI,1)+dx/2
-        Y_Cell(1:NI,0)=-dy/2
-        do I=1,NI
-          do J=1,NJ
-            X_Cell(I,J)=X_Node(I,J)+dx/2
-            Y_Cell(I,J)=Y_Node(I,J)+dy/2
-          end do
-        end do
+    DO i = 1, ni
+        DO j = 1, nj
+            x_node(i,j) = (i - 1) * dx
+            y_node(i,j) = (j - 1) * dy
+        END DO
+    END DO
 
-!************************* INITIAL FIELD ********************* 
+    x_cell(0, 1:nj) = - dx / 2
+    y_cell(0, 1:nj) = y_node(1, 1:nj) + dy / 2
+    x_cell(1:ni, 0) = x_node(1:ni, 1) + dx / 2
+    y_cell(1:ni, 0) = - dy / 2
 
-       do I=0,NI
-         do J=0,NJ
-           U_c(I,J)=X_Cell(I,J)
-           V_c(I,J)=Y_Cell(I,J)
-           P_c(I,J)=X_Cell(I,J)+Y_Cell(I,J)
-          end do
-       end do
+    DO i = 1, ni
+        DO j = 1, nj
+            x_cell(i,j) = x_node(i,j) + dx / 2
+            y_cell(i,j) = y_node(i,j) + dy / 2
+        END DO
+    END DO
 
-       do I=1,NI
-         do J=1,NJ
-           U_n(I,J)=X_Node(I,J)
-           V_n(I,J)=Y_Node(I,J)
-           P_n(I,J)=X_Node(I,J)+Y_Node(I,J)       
-         end do
-       end do
+    DO i = 0, ni
+        DO j = 0, nj
+            u_c(i,j) = x_cell(i,j)
+            v_c(i,j) = y_cell(i,j)
+            p_c(i,j) = x_cell(i,j) + y_cell(i,j)
+        END DO
+    END DO
+
+    DO i = 1, ni
+        DO j = 1, nj
+            u_n(i,j) = x_node(i,j)
+            v_n(i,j) = y_node(i,j)
+            p_n(i,j) = x_node(i,j) + y_node(i,j)       
+        END DO
+    END DO
 
 
-!****************** Solve equations ********************       
+    !****************** Solve equations ********************       
 
-! Prandtl
+    ! Prandtl
 
-! Navier - Stokes
+    ! Navier - Stokes
 
+    !*******************************************************
 
-!****************** Output Results ********************           
-  
-       write(*,*) 'Output data node (Prandtl)' 
-       Open(IO,FILE='data_pr.plt')
-       Call OutputFields_Node(IO,NI,NJ,X_Node,Y_Node,U_n,V_n,P_n)
-       Close(IO)
+    WRITE(*,*) 'RESULTS OUTPUT (PRANDTL)' 
+    OPEN(io, FILE='RES_PR.PLT')
+    Call OutputFieldsNode(io, ni, nj, x_node, y_node, u_n, v_n, p_n)
+    CLOSE(io)
+    WRITE(*,*) 'SUCCESS'
 
-       write(*,*) 'Output data cell (Navier - Stokes) ' 
-       Open(IO,FILE='data_ns.plt')
-       Call OutputFields_Cell(IO,NI,NJ,X_Node,Y_Node,U_c,V_c,P_c)
-       Close(IO)
+    WRITE(*,*) 'RESULTS OUTPUT (NAVIER-STOKES) ' 
+    OPEN(io,FILE='RES_NS.PLT')
+    Call OutputFieldsCell(io, ni, nj, x_node, y_node, u_c, v_c, p_c)
+    CLOSE(io)
+    WRITE(*,*) 'SUCCESS'
 
-       End program
-
-
-       SUBROUTINE OutputFields_Cell(IO,NI,NJ,X,Y,U,V,P)
-         IMPLICIT NONE
-
-         INTEGER NI,NJ,IO
-         REAL, DIMENSION(NI,NJ):: X,Y
-         REAL, DIMENSION(0:NI,0:NJ)::U,V,P
-       
-         Write(IO,*) 'VARIABLES = "X", "Y", "U", "V", "P"' 
-         Write(IO,*) 'ZONE I=',NI,', J=',NJ,', DATAPACKING=BLOCK, VARLOCATION=([3-20]=CELLCENTERED)'
-         Write(IO,'(100E25.16)') X(1:NI,1:NJ) 
-         Write(IO,'(100E25.16)') Y(1:NI,1:NJ)
-         Write(IO,'(100E25.16)') U(1:NI-1,1:NJ-1)
-         Write(IO,'(100E25.16)') V(1:NI-1,1:NJ-1)
-         Write(IO,'(100E25.16)') P(1:NI-1,1:NJ-1)
-
-       END SUBROUTINE 
+END PROGRAM
 
 
-       SUBROUTINE OutputFields_Node(IO,NI,NJ,X,Y,U,V,P)
-         IMPLICIT NONE
- 
-         INTEGER NI,NJ,IO
-         REAL, DIMENSION(NI,NJ):: X,Y
-         REAL, DIMENSION(NI,NJ):: U,V,P
+SUBROUTINE OutputFieldsCell(io, ni, nj, x, y, u, v, p)
+IMPLICIT NONE
+INTEGER(2) :: io
+INTEGER(4) :: ni, nj
+REAL(8), DIMENSION(ni,nj) :: x, y
+REAL(8), DIMENSioN(0:ni, 0:nj) :: u, v, p
 
-         Write(IO,*) 'VARIABLES = "X", "Y", "U", "V", "P"' 
-         Write(IO,*) 'ZONE I=',NI,', J=',NJ, ', DATAPACKING=BLOCK'
-         Write(IO,'(100E25.16)') X(1:NI,1:NJ) 
-         Write(IO,'(100E25.16)') Y(1:NI,1:NJ)
-         Write(IO,'(100E25.16)') U(1:NI,1:NJ)
-         Write(IO,'(100E25.16)') V(1:NI,1:NJ)
-         Write(IO,'(100E25.16)') P(1:NI,1:NJ)
+    WRITE(io,*) 'VARIABLES = "X", "Y", "U", "V", "P"' 
+    WRITE(io,*) 'ZONE I=',ni,', J=',nj,', DATAPACKING=BLOCK, VARLOCATION=([3-20]=CELLCENTERED)'
+    WRITE(io,'(100E25.16)') x(1:ni, 1:nj) 
+    WRITE(io,'(100E25.16)') y(1:ni, 1:nj)
+    WRITE(io,'(100E25.16)') u(1:ni-1, 1:nj-1)
+    WRITE(io,'(100E25.16)') v(1:ni-1, 1:nj-1)
+    WRITE(io,'(100E25.16)') p(1:ni-1, 1:nj-1)
 
-       END  SUBROUTINE 
-      
+END SUBROUTINE 
+
+
+SUBROUTINE OutputFieldsNode(io, ni, nj, x, y, u, v, p)
+IMPLICIT NONE
+INTEGER(2) :: io
+INTEGER(4) :: ni, nj
+REAL(8), DIMENSION(ni,nj) :: x,y
+REAL(8), DIMENSION(ni,nj) :: u,v,p
+
+    WRITE(io,*) 'VARIABLES = "X", "Y", "U", "V", "P"' 
+    WRITE(io,*) 'ZONE I=', ni, ', J=', nj, ', DATAPACKING=BLOCK'
+    WRITE(io,'(100E25.16)') x(1:ni, 1:nj) 
+    WRITE(io,'(100E25.16)') y(1:ni, 1:nj)
+    WRITE(io,'(100E25.16)') u(1:ni, 1:nj)
+    WRITE(io,'(100E25.16)') v(1:ni, 1:nj)
+    WRITE(io,'(100E25.16)') p(1:ni, 1:nj)
+
+END  SUBROUTINE 
