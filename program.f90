@@ -26,10 +26,6 @@ REAL(8), ALLOCATABLE :: u_n(:,:), v_n(:,:), p_n(:,:)
 
     CALL MeshMaking(ni, nj, l, h, dx, dy, x_node, y_node, x_cell, y_cell)
 
-    u_n = 5
-    v_n = 7
-    p_n = 3
-
     CALL BoundaryConditionsPrandtl(ni, nj, u_0, u_n, v_n, p_n)
 
 
@@ -41,17 +37,9 @@ REAL(8), ALLOCATABLE :: u_n(:,:), v_n(:,:), p_n(:,:)
 
     !*******************************************************
 
-    WRITE(*,*) 'RESULTS OUTPUT (PRANDTL)' 
-    OPEN(io, FILE='RES_PR.PLT')
     CALL OutputFieldsNode(io, ni, nj, x_node, y_node, u_n, v_n, p_n)
-    CLOSE(io)
-    WRITE(*,*) 'SUCCESS'
 
-    WRITE(*,*) 'RESULTS OUTPUT (NAVIER-STOKES) ' 
-    OPEN(io,FILE='RES_NS.PLT')
-    CALL OutputFieldsCell(io, ni, nj, x_node, y_node, u_c, v_c, p_c)
-    CLOSE(io)
-    WRITE(*,*) 'SUCCESS'
+    CALL OutputFieldsCell(io, ni, nj, x_cell, y_cell, u_c, v_c, p_c)
 
 END PROGRAM
 
@@ -127,7 +115,9 @@ INTEGER(4) :: ni, nj
 REAL(8), DIMENSION(ni,nj) :: x, y
 REAL(8), DIMENSION(0:ni, 0:nj) :: u, v, p
 INTENT(IN) io, ni, nj, x, y, u, v, p
-
+    
+    WRITE(*,*) 'RESULTS OUTPUT (PRANDTL)' 
+    OPEN(io, FILE='RES_PR.PLT')
     WRITE(io,*) 'VARIABLES = "X", "Y", "U", "V", "P"' 
     WRITE(io,*) 'ZONE I=',ni,', J=',nj,', DATAPACKING=BLOCK, VARLOCATION=([3-20]=CELLCENTERED)'
     WRITE(io,'(100E25.16)') x(1:ni, 1:nj) 
@@ -135,6 +125,8 @@ INTENT(IN) io, ni, nj, x, y, u, v, p
     WRITE(io,'(100E25.16)') u(1:ni - 1, 1:nj - 1)
     WRITE(io,'(100E25.16)') v(1:ni - 1, 1:nj - 1)
     WRITE(io,'(100E25.16)') p(1:ni - 1, 1:nj - 1)
+    CLOSE(io)
+    WRITE(*,*) 'SUCCESS'
 
 END SUBROUTINE 
 
@@ -146,7 +138,9 @@ INTEGER(4) :: ni, nj
 REAL(8), DIMENSION(ni,nj) :: x, y
 REAL(8), DIMENSION(ni,nj) :: u, v, p
 INTENT(IN) io, ni, nj, x, y, u, v, p
-
+    
+    WRITE(*,*) 'RESULTS OUTPUT (NAVIER-STOKES) ' 
+    OPEN(io,FILE='RES_NS.PLT')
     WRITE(io,*) 'VARIABLES = "X", "Y", "U", "V", "P"' 
     WRITE(io,*) 'ZONE I=', ni, ', J=', nj, ', DATAPACKING=BLOCK'
     WRITE(io,'(100E25.16)') x(1:ni, 1:nj) 
@@ -154,5 +148,7 @@ INTENT(IN) io, ni, nj, x, y, u, v, p
     WRITE(io,'(100E25.16)') u(1:ni, 1:nj)
     WRITE(io,'(100E25.16)') v(1:ni, 1:nj)
     WRITE(io,'(100E25.16)') p(1:ni, 1:nj)
+    CLOSE(io)
+    WRITE(*,*) 'SUCCESS'
 
 END  SUBROUTINE 
