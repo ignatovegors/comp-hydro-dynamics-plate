@@ -1,4 +1,4 @@
-PROGRAM  platePrandtl
+PROGRAM  platePrandtlNavierStokes
     IMPLICIT NONE
     INTEGER(2), PARAMETER :: io = 12
     INTEGER(4) :: ni, nj, niter
@@ -8,7 +8,6 @@ PROGRAM  platePrandtl
     REAL(8), ALLOCATABLE :: x_cell(:,:), y_cell(:,:)
     REAL(8), ALLOCATABLE :: u_c(:,:), v_c(:,:), p_c(:,:)
     REAL(8), ALLOCATABLE :: u_n(:,:), v_n(:,:), p_n(:,:)
-    REAL(8), DIMENSION(3) :: res
 
     CALL DataInput(io, l, h, ni, nj, u_0, nu)
 
@@ -60,6 +59,7 @@ END PROGRAM
 
 
 SUBROUTINE DataInput(io, l, h, ni, nj, u_0, nu)
+    ! Takes input data from file input.txt
     IMPLICIT NONE
     INTEGER(2) :: io
     INTEGER(4) :: ni, nj
@@ -82,6 +82,8 @@ SUBROUTINE DataInput(io, l, h, ni, nj, u_0, nu)
 
 
 SUBROUTINE MeshMaking(ni, nj, l, h, dx, dy, x_node, y_node, x_cell, y_cell)
+    ! Makes mesh for numerical solution Prandtl (node) and 
+    !Navier-Stokes (cell) systems of equations
     IMPLICIT NONE
     INTEGER(4) :: ni, nj, i, j
     REAL(8) :: l, h, dx, dy
@@ -113,6 +115,7 @@ SUBROUTINE MeshMaking(ni, nj, l, h, dx, dy, x_node, y_node, x_cell, y_cell)
 
 
 SUBROUTINE InitialConditionsPrandtl(ni, nj, u_0, u)
+    ! Initial uniform velocity condition in the inlet
     IMPLICIT NONE
     INTEGER(4) :: ni, nj
     REAL(8) :: u_0
@@ -130,6 +133,7 @@ SUBROUTINE InitialConditionsPrandtl(ni, nj, u_0, u)
 
 
 SUBROUTINE BoundaryConditionsPrandtl(ni, nj, u_0, u, v, p)
+    ! Boundary no-slip and uniform conditions for velocity
     IMPLICIT NONE
     INTEGER(4) :: ni, nj
     REAL(8) :: u_0
@@ -177,6 +181,7 @@ SUBROUTINE ThomasAlgorithm(kmax, a, b, c, d, res)
 
 
 SUBROUTINE OutputFieldsCell(io, ni, nj, x, y, u, v, p)
+    ! Cells-based results output
     IMPLICIT NONE
     INTEGER(2) :: io
     INTEGER(4) :: ni, nj
@@ -200,6 +205,7 @@ SUBROUTINE OutputFieldsCell(io, ni, nj, x, y, u, v, p)
 
 
 SUBROUTINE OutputFieldsNode(io, ni, nj, x, y, u, v, p)
+    ! Nodes-based results output
     IMPLICIT NONE
     INTEGER(2) :: io
     INTEGER(4) :: ni, nj
