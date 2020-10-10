@@ -111,7 +111,8 @@ IMPLICIT NONE
 INTEGER(2) :: io
 INTEGER(4) :: ni, nj
 REAL(8), DIMENSION(ni,nj) :: x, y
-REAL(8), DIMENSioN(0:ni, 0:nj) :: u, v, p
+REAL(8), DIMENSION(0:ni, 0:nj) :: u, v, p
+INTENT(IN) io, ni, nj, x, y, u, v, p
 
     WRITE(io,*) 'VARIABLES = "X", "Y", "U", "V", "P"' 
     WRITE(io,*) 'ZONE I=',ni,', J=',nj,', DATAPACKING=BLOCK, VARLOCATION=([3-20]=CELLCENTERED)'
@@ -128,8 +129,10 @@ SUBROUTINE OutputFieldsNode(io, ni, nj, x, y, u, v, p)
 IMPLICIT NONE
 INTEGER(2) :: io
 INTEGER(4) :: ni, nj
-REAL(8), DIMENSION(ni,nj) :: x,y
-REAL(8), DIMENSION(ni,nj) :: u,v,p
+REAL(8), DIMENSION(ni,nj) :: x, y
+REAL(8), DIMENSION(ni,nj) :: u, v, p
+INTENT(IN) io, ni, nj, x, y, u, v, p
+
 
     WRITE(io,*) 'VARIABLES = "X", "Y", "U", "V", "P"' 
     WRITE(io,*) 'ZONE I=', ni, ', J=', nj, ', DATAPACKING=BLOCK'
