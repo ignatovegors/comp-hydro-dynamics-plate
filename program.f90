@@ -9,14 +9,7 @@ REAL(8), ALLOCATABLE :: x_cell(:,:), y_cell(:,:)
 REAL(8), ALLOCATABLE :: u_c(:,:), v_c(:,:), p_c(:,:)
 REAL(8), ALLOCATABLE :: u_n(:,:), v_n(:,:), p_n(:,:)
 
-    WRITE(*,*) 'READING INPUT FILE'
-    OPEN(io,FILE='INPUT.TXT')
-    READ(io,*) l
-    READ(io,*) h
-    READ(io,*) ni
-    READ(io,*) nj
-    CLOSE(io)
-    WRITE(*,*) 'SUCCESS'
+    CALL DataInput(io, l, h, ni, nj)
 
     ALLOCATE(x_node(ni,nj))
     ALLOCATE(y_node(ni,nj))
@@ -80,17 +73,37 @@ REAL(8), ALLOCATABLE :: u_n(:,:), v_n(:,:), p_n(:,:)
 
     WRITE(*,*) 'RESULTS OUTPUT (PRANDTL)' 
     OPEN(io, FILE='RES_PR.PLT')
-    Call OutputFieldsNode(io, ni, nj, x_node, y_node, u_n, v_n, p_n)
+    CALL OutputFieldsNode(io, ni, nj, x_node, y_node, u_n, v_n, p_n)
     CLOSE(io)
     WRITE(*,*) 'SUCCESS'
 
     WRITE(*,*) 'RESULTS OUTPUT (NAVIER-STOKES) ' 
     OPEN(io,FILE='RES_NS.PLT')
-    Call OutputFieldsCell(io, ni, nj, x_node, y_node, u_c, v_c, p_c)
+    CALL OutputFieldsCell(io, ni, nj, x_node, y_node, u_c, v_c, p_c)
     CLOSE(io)
     WRITE(*,*) 'SUCCESS'
 
 END PROGRAM
+
+
+SUBROUTINE DataInput(io, l, h, ni, nj)
+IMPLICIT NONE
+INTEGER(2) :: io
+INTEGER(4) :: ni, nj
+REAL(8) :: l, h 
+INTENT(IN) io
+INTENT(OUT) l, h, ni, nj
+
+    WRITE(*,*) 'READING INPUT FILE'
+    OPEN(io,FILE='INPUT.TXT')
+    READ(io,*) l
+    READ(io,*) h
+    READ(io,*) ni
+    READ(io,*) nj
+    CLOSE(io)
+    WRITE(*,*) 'SUCCESS'
+
+END SUBROUTINE
 
 
 SUBROUTINE OutputFieldsCell(io, ni, nj, x, y, u, v, p)
