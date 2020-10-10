@@ -24,20 +24,7 @@ REAL(8), ALLOCATABLE :: u_n(:,:), v_n(:,:), p_n(:,:)
     ALLOCATE(v_n(ni,nj))   
     ALLOCATE(p_n(ni,nj))   
 
-    dx = l / (ni - 1)
-    dy = h / (nj - 1)
-
-    DO i = 1, ni
-        DO j = 1, nj
-            x_node(i,j) = (i - 1) * dx
-            y_node(i,j) = (j - 1) * dy
-        END DO
-    END DO
-
-    x_cell(0, 1:nj) = - dx / 2
-    y_cell(0, 1:nj) = y_node(1, 1:nj) + dy / 2
-    x_cell(1:ni, 0) = x_node(1:ni, 1) + dx / 2
-    y_cell(1:ni, 0) = - dy / 2
+    CALL MeshMaking(ni, nj, l, h, dx, dy, x_node, y_node, x_cell, y_cell)
 
     DO i = 1, ni
         DO j = 1, nj
@@ -106,6 +93,33 @@ INTENT(OUT) l, h, ni, nj
 END SUBROUTINE
 
 
+SUBROUTINE MeshMaking(ni, nj, l, h, dx, dy, x_node, y_node, x_cell, y_cell)
+IMPLICIT NONE
+INTEGER(4) :: ni, nj, i, j
+REAL(8) :: l, h, dx, dy
+REAL(8), DIMENSION(ni,nj) :: x_node, y_node
+REAL(8), DIMENSION(0:ni, 0:nj) :: x_cell, y_cell
+INTENT(IN) l, h, ni, nj
+INTENT(OUT) dx, dy, x_node, y_node, x_cell, y_cell
+
+    dx = l / (ni - 1)
+    dy = h / (nj - 1)
+
+    DO i = 1, ni
+        DO j = 1, nj
+            x_node(i,j) = (i - 1) * dx
+            y_node(i,j) = (j - 1) * dy
+        END DO
+    END DO
+
+    x_cell(0, 1:nj) = - dx / 2
+    y_cell(0, 1:nj) = y_node(1, 1:nj) + dy / 2
+    x_cell(1:ni, 0) = x_node(1:ni, 1) + dx / 2
+    y_cell(1:ni, 0) = - dy / 2
+
+END SUBROUTINE
+
+
 SUBROUTINE OutputFieldsCell(io, ni, nj, x, y, u, v, p)
 IMPLICIT NONE
 INTEGER(2) :: io
@@ -132,7 +146,6 @@ INTEGER(4) :: ni, nj
 REAL(8), DIMENSION(ni,nj) :: x, y
 REAL(8), DIMENSION(ni,nj) :: u, v, p
 INTENT(IN) io, ni, nj, x, y, u, v, p
-
 
     WRITE(io,*) 'VARIABLES = "X", "Y", "U", "V", "P"' 
     WRITE(io,*) 'ZONE I=', ni, ', J=', nj, ', DATAPACKING=BLOCK'
