@@ -74,6 +74,8 @@ REAL(8), DIMENSION(0:ni, 0:nj) :: x_cell, y_cell
 INTENT(IN) l, h, ni, nj
 INTENT(OUT) dx, dy, x_node, y_node, x_cell, y_cell
 
+    WRITE(*,*) 'MESH MAKING'
+
     dx = l / (ni - 1)
     dy = h / (nj - 1)
 
@@ -89,6 +91,8 @@ INTENT(OUT) dx, dy, x_node, y_node, x_cell, y_cell
     x_cell(1:ni, 0) = x_node(1:ni, 1) + dx / 2
     y_cell(1:ni, 0) = - dy / 2
 
+    WRITE(*,*) 'SUCCESS'
+
 END SUBROUTINE
 
 
@@ -99,11 +103,15 @@ REAL(8) :: u_0
 REAL(8), DIMENSION(ni,nj) :: u, v, p
 INTENT(IN) ni, nj, u_0
 INTENT(OUT) u, v, p
+
+    WRITE(*,*) 'BOUNDARY CONDITIONS APPLYING (PRANDTL)'
     
     u(1:ni, 1) = 0
     v(1:ni, 1) = 0
     u(1:ni, nj) = u_0
     p(1:ni, 1:nj) = 0
+
+    WRITE(*,*) 'SUCCESS'
     
 END SUBROUTINE
 
