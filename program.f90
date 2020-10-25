@@ -2,7 +2,7 @@ PROGRAM platePrandtlNavierStokes
     IMPLICIT NONE
     INTEGER(2), PARAMETER :: io = 12
     INTEGER(4) :: ni, nj
-    INTEGER(4) :: i, j, s, s_max
+    INTEGER(4) :: i, j, s_max
     REAL(8) :: l, h, dx, dy, u_0, nu, eps, dt, a, cfl
     REAL(8), ALLOCATABLE :: x_node(:,:), y_node(:,:)
     REAL(8), ALLOCATABLE :: x_cell(:,:), y_cell(:,:)
@@ -102,7 +102,7 @@ SUBROUTINE MeshMaking(ni, nj, l, h, dx, dy, x_node, y_node, x_cell, y_cell, u_0,
     dx = l / (ni - 1)
     dy = h / (nj - 1)
     dt = cfl * MIN(0.5D0 * dx * dx / nu, 0.5D0 * dy * dy / nu, dx / u_0)
-    a = 1 / (u_0 * u_0)
+    a = 1D0 / (u_0 * u_0)
 
     DO i = 1, ni
         DO j = 1, nj
@@ -279,12 +279,16 @@ SUBROUTINE SolverPrandtl(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v)
             END DO    
             
             IF ((ConvergenceCheckPrandtl(u(i, :), u_temp, nj, eps)) .AND. (ConvergenceCheckPrandtl(v(i, :), v_temp, nj, eps))) THEN
-                WRITE(*,*) 'SOLUTION CONVERGED, NODE №', I 
+                WRITE(*,*) 'SOLUTION CONVERGED BY RESIDUALS, NODE №', I, ', s = ', s
                 EXIT 
             END IF
 
             u_temp = u(i, :)
             v_temp = v(i, :)
+
+            IF (s == s_max) THEN
+                WRITE(*,*) 'SOLUTION CONVERGED BY ITERATIONS BOUNDARY, NODE №', I
+            END IF
 
         END DO
 
@@ -296,8 +300,9 @@ SUBROUTINE SolverPrandtl(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v)
 
 
 SUBROUTINE SolverNavierStokes(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v, p, a, dt)
+    !Solver for Navier-Stokes system of equations
     IMPLICIT NONE
-    REAL(8), EXTERNAL :: HalfIndexValue
+    REAL(8), EXTERNAL :: HalfIndexValue, ResidualNavierStokes
     LOGICAL(1), EXTERNAL :: ConvergenceCheckNavierStokes
     INTEGER(4) :: i, j, ni, nj, s, s_max
     REAL(8) :: u_hat_left, u_hat_right
@@ -305,9 +310,12 @@ SUBROUTINE SolverNavierStokes(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v, p, a, d
     REAL(8) :: u_left, u_right, u_top, u_bot
     REAL(8) :: v_left, v_right, v_top, v_bot
     REAL(8) :: p_left, p_right, p_top, p_bot
-    REAL(8) :: dx, dy, nu, eps, u_0, a, dt, u_res, v_res, p_res 
+    REAL(8) :: dx, dy, nu, eps, u_0, a, dt, res_u, res_v, res_p 
     REAL(8), DIMENSION(0:ni,0:nj) :: u_old, v_old, p_old, u, v, p
+    INTENT(IN) ni, nj, s_max, dx, dy, nu, eps, u_0, a, dt
+    INTENT(OUT) u, v, p
 
+    WRITE(*,*) 'SOLVING EQUATIONS (NAVIER-STOKES)'
 
     DO s = 1, s_max
 
@@ -357,13 +365,30 @@ SUBROUTINE SolverNavierStokes(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v, p, a, d
 
         CALL BoundaryConditionsNavierStokes(ni, nj, u_0, u, v, p)
 
-        IF (ConvergenceCheckNavierStokes(u, u_old, ni, nj, eps) &
-            .OR. ConvergenceCheckNavierStokes(v, v_old, ni, nj, eps) &
-            .OR. ConvergenceCheckNavierStokes(p, p_old, ni, nj, eps)) THEN
+        res_u = ResidualNavierStokes(u, u_old, ni, nj, dt)
+        res_v = ResidualNavierStokes(v, v_old, ni, nj, dt)
+        res_p = ResidualNavierStokes(p, p_old, ni, nj, dt)
+
+        ! CALL ResidualLogs(1, s, res_u, res_v, res_p)
+
+        IF (ConvergenceCheckNavierStokes(u, u_old, ni, nj, eps, dt) &
+            .OR. ConvergenceCheckNavierStokes(v, v_old, ni, nj, eps, dt) &
+            .OR. ConvergenceCheckNavierStokes(p, p_old, ni, nj, eps, dt)) THEN
+                WRITE(*,*) 'SOLUTION CONVERGED BY RESIDUALS'
                 EXIT
         END IF
 
+        IF (MOD(s,100) == 0) THEN
+            WRITE(*,*) s, 'ITERATIONS MADE'
+        END IF
+
+        IF (s == s_max) THEN
+            WRITE(*,*) 'SOLUTION CONVERGED BY ITERATIONS BOUNDARY'
+        END IF
+
     END DO
+
+    WRITE(*,*) 'SUCCESS'
 
     END SUBROUTINE
 
@@ -421,37 +446,44 @@ SUBROUTINE OutputFieldsNode(io, ni, nj, x, y, u, v, p)
     CLOSE(io)
     WRITE(*,*) 'SUCCESS'
 
-    END  SUBROUTINE 
+    END SUBROUTINE 
+
+
+SUBROUTINE ResidualLogs(io, s, res_u, res_v, res_p)
+    ! Nodes-based results output
+    IMPLICIT NONE
+    INTEGER(2) :: io
+    REAL(8) :: s, res_u, res_v, res_p
+    INTENT(IN) io, res_u, res_v, res_p, s
+     
+    OPEN(io,FILE='RESIDUALS.PLT')
+    WRITE(io,*) 'VARIABLES = "ITER", "RES_U", "RES_V", "RES_P"' 
+    WRITE(io,'(100E25.16)') s, res_u, res_v, res_p
+    CLOSE(io)
+
+    END SUBROUTINE
 
 
 LOGICAL(1) FUNCTION ConvergenceCheckPrandtl(a, b, n, eps)
     IMPLICIT NONE
-    REAL(8), DIMENSION(n) :: a, b, dif
+    REAL(8), EXTERNAL :: ResidualPrandtl
+    REAL(8), DIMENSION(n) :: a, b
     REAL(8) :: eps
-    INTEGER(4) :: i, n
+    INTEGER(4) :: n
 
-    DO i = 1, n
-        dif(i) = abs(a(i) - b(i)) / abs(a(i))
-    END DO
-
-    ConvergenceCheckPrandtl = (MAXVAL(dif) < eps)
+    ConvergenceCheckPrandtl = (ResidualPrandtl(a, b, n) < eps)
 
     END FUNCTION
 
 
-LOGICAL(1) FUNCTION ConvergenceCheckNavierStokes(a, b, ni, nj, eps)
+LOGICAL(1) FUNCTION ConvergenceCheckNavierStokes(a, b, ni, nj, eps, dt)
     IMPLICIT NONE
+    REAL(8), EXTERNAL :: ResidualNavierStokes
     REAL(8), DIMENSION(ni, nj) :: a, b, dif
-    REAL(8) :: eps
-    INTEGER(4) :: i, j, ni, nj
+    REAL(8) :: eps, dt
+    INTEGER(4) :: ni, nj
 
-    DO i = 1, ni
-        DO j = 1, nj
-            dif(i,j) = abs(a(i,j) - b(i,j)) / abs(a(i,j))
-        END DO
-    END DO
-
-    ConvergenceCheckNavierStokes = (MAXVAL(dif) < eps)
+    ConvergenceCheckNavierStokes = (ResidualNavierStokes(a, b, ni, nj, dt) < eps)
 
     END FUNCTION
 
@@ -465,5 +497,36 @@ REAL(8) FUNCTION HalfIndexValue(arg, minus_res, plus_res)
     ELSE
         HalfIndexValue = plus_res
     END IF
+
+    END FUNCTION
+
+
+REAL(8) FUNCTION ResidualPrandtl(a, b, n)
+    IMPLICIT NONE
+    REAL(8), DIMENSION(n) :: a, b, dif
+    INTEGER(4) :: i, n
+
+    DO i = 1, n
+        dif(i) = abs(a(i) - b(i)) / abs(a(i))
+    END DO
+
+    ResidualPrandtl = MAXVAL(dif)
+
+    END FUNCTION
+
+
+REAL(8) FUNCTION ResidualNavierStokes(a, b, ni, nj, dt)
+    IMPLICIT NONE
+    REAL(8), DIMENSION(ni, nj) :: a, b, dif
+    REAL(8) :: dt
+    INTEGER(4) :: i, j, ni, nj
+
+    DO i = 1, ni
+        DO j = 1, nj
+            dif(i,j) = abs(a(i,j) - b(i,j)) / abs(a(i,j))
+        END DO
+    END DO
+
+    ResidualNavierStokes = MAXVAL(dif) / dt 
 
     END FUNCTION
