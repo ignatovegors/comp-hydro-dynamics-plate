@@ -25,20 +25,17 @@ PROGRAM platePrandtlNavierStokes
     ALLOCATE(v_n(ni,nj))   
     ALLOCATE(p_n(ni,nj))
 
-    CALL MeshMaking(ni, nj, l, h, dx, dy, x_node, y_node, x_cell, y_cell)
-
-    dt = cfl * MIN(0.5D0 * dx * dx / nu, 0.5D0 * dy * dy / nu, dx / u_0)
-    a = 1 / (u_0 * u_0)
+    CALL MeshMaking(ni, nj, l, h, dx, dy, x_node, y_node, x_cell, y_cell, u_0, a, cfl, dt, nu)
 
     CALL InitialConditionsPrandtl(ni, nj, u_0, u_n, p_n)
 
     CALL InitialConditionsNavierStokes(ni, nj, u_0, u_c, v_c, p_c)
 
     CALL BoundaryConditionsPrandtl(ni, nj, u_0, u_n, v_n)
+    
+    CALL BoundaryConditionsPrandtl(ni, nj, u_0, u_n, v_n)    
 
-    CALL BoundaryConditionsNavierStokes(ni, nj, u_0, u_c, v_c, p_c) 
-  
-    ! CALL SolverPrandtl(ni, nj, s_max, dx, dy, nu, eps, u_0, u_n, v_n)
+    CALL SolverPrandtl(ni, nj, s_max, dx, dy, nu, eps, u_0, u_n, v_n)
 
     CALL SolverNavierStokes(ni, nj, s_max, dx, dy, nu, eps, u_0, u_c, v_c, p_c, a, dt)
 
@@ -89,21 +86,23 @@ SUBROUTINE DataInput(io, l, h, ni, nj, u_0, nu, s_max, eps, cfl)
     END SUBROUTINE
 
 
-SUBROUTINE MeshMaking(ni, nj, l, h, dx, dy, x_node, y_node, x_cell, y_cell)
+SUBROUTINE MeshMaking(ni, nj, l, h, dx, dy, x_node, y_node, x_cell, y_cell, u_0, a, cfl, dt, nu)
     ! Makes mesh for numerical solution Prandtl (node) and 
     ! Navier-Stokes (cell) systems of equations
     IMPLICIT NONE
     INTEGER(4) :: ni, nj, i, j
-    REAL(8) :: l, h, dx, dy
+    REAL(8) :: l, h, dx, dy, u_0, a, cfl, dt, nu
     REAL(8), DIMENSION(ni,nj) :: x_node, y_node
     REAL(8), DIMENSION(0:ni, 0:nj) :: x_cell, y_cell
-    INTENT(IN) l, h, ni, nj
-    INTENT(OUT) dx, dy, x_node, y_node, x_cell, y_cell
+    INTENT(IN) l, h, ni, nj, u_0, cfl, nu
+    INTENT(OUT) dx, dy, x_node, y_node, x_cell, y_cell, a, dt
 
     WRITE(*,*) 'MESH MAKING'
 
     dx = l / (ni - 1)
     dy = h / (nj - 1)
+    dt = cfl * MIN(0.5D0 * dx * dx / nu, 0.5D0 * dy * dy / nu, dx / u_0)
+    a = 1 / (u_0 * u_0)
 
     DO i = 1, ni
         DO j = 1, nj
@@ -175,15 +174,11 @@ SUBROUTINE BoundaryConditionsPrandtl(ni, nj, u_0, u, v)
     REAL(8), DIMENSION(ni,nj) :: u, v
     INTENT(IN) ni, nj, u_0
     INTENT(OUT) u, v
-
-    WRITE(*,*) 'BOUNDARY CONDITIONS APPLYING (PRANDTL)'
-    
+   
     u(1:ni, 1) = 0D0
     v(1:ni, 1) = 0D0
     u(1:ni, nj) = u_0
-
-    WRITE(*,*) 'SUCCESS'
-    
+  
     END SUBROUTINE
 
 
@@ -195,8 +190,6 @@ SUBROUTINE BoundaryConditionsNavierStokes(ni, nj, u_0, u, v, p)
     REAL(8), DIMENSION(0:ni,0:nj) :: u, v, p
     INTENT(IN) ni, nj, u_0
     INTENT(OUT) u, v, p
-
-    WRITE(*,*) 'BOUNDARY CONDITIONS APPLYING (NAVIER-STOKES)'
     
     u(0, 1:nj) = u_0
     v(0, 1:nj) = 0D0
@@ -213,9 +206,7 @@ SUBROUTINE BoundaryConditionsNavierStokes(ni, nj, u_0, u, v, p)
     u(1:ni, nj) = u(1:ni, nj - 1)
     v(1:ni, nj) = v(1:ni, nj - 1)
     p(1:ni, nj) = 0D0
-
-    WRITE(*,*) 'SUCCESS'
-    
+   
     END SUBROUTINE
 
 
@@ -249,7 +240,7 @@ SUBROUTINE ThomasAlgorithm(k_max, a, b, c, d, res)
 SUBROUTINE SolverPrandtl(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v)
     ! Solver for Prandtl (Simplified Navier-Stokes) equations system
     IMPLICIT NONE
-    LOGICAL(1), EXTERNAL :: ConvergenceCheck
+    LOGICAL(1), EXTERNAL :: ConvergenceCheckPrandtl
     INTEGER(4) :: i, j, s, ni, nj, s_max
     REAL(8) :: dx, dy, nu, eps, u_0
     REAL(8), DIMENSION(ni,nj) :: u, v
@@ -287,7 +278,7 @@ SUBROUTINE SolverPrandtl(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v)
                 v(i,j) = v(i, j - 1) - dy / (2 * dx) * (u(i,j) - u(i - 1, j) + u(i, j - 1) - u(i - 1, j - 1))
             END DO    
             
-            IF ((ConvergenceCheck(u(i, :), u_temp, nj, eps)) .AND. (ConvergenceCheck(v(i, :), v_temp, nj, eps))) THEN
+            IF ((ConvergenceCheckPrandtl(u(i, :), u_temp, nj, eps)) .AND. (ConvergenceCheckPrandtl(v(i, :), v_temp, nj, eps))) THEN
                 WRITE(*,*) 'SOLUTION CONVERGED, NODE №', I 
                 EXIT 
             END IF
@@ -307,6 +298,7 @@ SUBROUTINE SolverPrandtl(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v)
 SUBROUTINE SolverNavierStokes(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v, p, a, dt)
     IMPLICIT NONE
     REAL(8), EXTERNAL :: HalfIndexValue
+    LOGICAL(1), EXTERNAL :: ConvergenceCheckNavierStokes
     INTEGER(4) :: i, j, ni, nj, s, s_max
     REAL(8) :: u_hat_left, u_hat_right
     REAL(8) :: v_hat_top, v_hat_bot
@@ -344,22 +336,9 @@ SUBROUTINE SolverNavierStokes(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v, p, a, d
                 v_top = HalfIndexValue(v_hat_top, v(i, j + 1), v(i,j))
                 p_top = HalfIndexValue(v_hat_top, p(i, j), p(i,j + 1))
                 
-                u_bot = HalfIndexValue(v_hat_bot, u(i, j), u(i - 1,j))
-                v_bot = HalfIndexValue(v_hat_bot, v(i, j), v(i - 1,j))
-                p_bot = HalfIndexValue(v_hat_bot, p(i - 1, j), p(i,j))
-
-                p_res = abs(((u_right - u_left) / dx + (v_top - v_bot) / dy)) / a
-                u_res = abs(((u_hat_right * u_right - u_hat_left * u_left) / dx &
-                    + (v_hat_top * u_top - v_hat_bot * u_bot) / dy &
-                    + (p_right - p_left) / dx &
-                    - nu * (u_old(i + 1, j) - 2 * u_old(i,j) + u_old(i - 1, j)) / dx ** 2 &
-                    - nu * (u_old(i, j + 1) - 2 * u_old(i,j) + u_old(i, j - 1)) / dy ** 2 ))
-                v_res = abs(((u_hat_right * v_right - u_hat_left * v_left) / dx &
-                    + (v_hat_top * v_top - v_hat_bot * v_bot) / dy &
-                    + (p_top - p_bot) / dy &
-                    - nu * (v_old(i + 1, j) - 2 * v_old(i,j) + v_old(i - 1, j)) / dx ** 2 &
-                    - nu * (v_old(i, j + 1) - 2 * v_old(i,j) + v_old(i, j - 1)) / dy ** 2 ))
-                write(*,*) u_res, v_res, p_res
+                u_bot = HalfIndexValue(v_hat_bot, u(i, j), u(i,j - 1))
+                v_bot = HalfIndexValue(v_hat_bot, v(i, j), v(i,j - 1))
+                p_bot = HalfIndexValue(v_hat_bot, p(i, j - 1), p(i,j))
 
                 p(i,j) = p(i,j) - dt * ((u_right - u_left) / dx + (v_top - v_bot) / dy) / a
                 u(i,j) = u(i,j) - dt * ((u_hat_right * u_right - u_hat_left * u_left) / dx &
@@ -377,6 +356,12 @@ SUBROUTINE SolverNavierStokes(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v, p, a, d
         END DO
 
         CALL BoundaryConditionsNavierStokes(ni, nj, u_0, u, v, p)
+
+        IF (ConvergenceCheckNavierStokes(u, u_old, ni, nj, eps) &
+            .OR. ConvergenceCheckNavierStokes(v, v_old, ni, nj, eps) &
+            .OR. ConvergenceCheckNavierStokes(p, p_old, ni, nj, eps)) THEN
+                EXIT
+        END IF
 
     END DO
 
@@ -439,7 +424,7 @@ SUBROUTINE OutputFieldsNode(io, ni, nj, x, y, u, v, p)
     END  SUBROUTINE 
 
 
-LOGICAL(1) FUNCTION ConvergenceCheck(a, b, n, eps)
+LOGICAL(1) FUNCTION ConvergenceCheckPrandtl(a, b, n, eps)
     IMPLICIT NONE
     REAL(8), DIMENSION(n) :: a, b, dif
     REAL(8) :: eps
@@ -449,7 +434,24 @@ LOGICAL(1) FUNCTION ConvergenceCheck(a, b, n, eps)
         dif(i) = abs(a(i) - b(i)) / abs(a(i))
     END DO
 
-    ConvergenceCheck = (MAXVAL(dif) < eps)
+    ConvergenceCheckPrandtl = (MAXVAL(dif) < eps)
+
+    END FUNCTION
+
+
+LOGICAL(1) FUNCTION ConvergenceCheckNavierStokes(a, b, ni, nj, eps)
+    IMPLICIT NONE
+    REAL(8), DIMENSION(ni, nj) :: a, b, dif
+    REAL(8) :: eps
+    INTEGER(4) :: i, j, ni, nj
+
+    DO i = 1, ni
+        DO j = 1, nj
+            dif(i,j) = abs(a(i,j) - b(i,j)) / abs(a(i,j))
+        END DO
+    END DO
+
+    ConvergenceCheckNavierStokes = (MAXVAL(dif) < eps)
 
     END FUNCTION
 
@@ -465,16 +467,3 @@ REAL(8) FUNCTION HalfIndexValue(arg, minus_res, plus_res)
     END IF
 
     END FUNCTION
-
-
-! REAL(8) FUNCTION UResidual(arg, minus_res, plus_res)
-!     IMPLICIT NONE
-!     REAL(8) :: arg, minus_res, plus_res
-
-!     IF (arg < 0D0) THEN
-!         HalfIndexValue = minus_res
-!     ELSE
-!         HalfIndexValue = plus_res
-!     END IF
-
-!     END FUNCTION
