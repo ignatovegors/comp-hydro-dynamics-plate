@@ -37,7 +37,7 @@ PROGRAM platePrandtlNavierStokes
 
     CALL SolverPrandtl(ni, nj, s_max, dx, dy, nu, eps, u_0, u_n, v_n)
 
-    CALL SolverNavierStokes(ni, nj, s_max, dx, dy, nu, eps, u_0, u_c, v_c, p_c, a, dt)
+    CALL SolverNavierStokes(ni, nj, s_max, dx, dy, nu, eps, u_0, u_c, v_c, p_c, a, dt, io)
 
     CALL OutputFieldsNode(io, ni, nj, x_node, y_node, u_n, v_n, p_n)
 
@@ -245,6 +245,8 @@ SUBROUTINE SolverPrandtl(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v)
     REAL(8) :: dx, dy, nu, eps, u_0
     REAL(8), DIMENSION(ni,nj) :: u, v
     REAL(8), DIMENSION(nj) :: u_temp, v_temp, a, b, c, d
+    INTENT(IN) :: ni, nj, s_max, dx, dy, nu, eps, u_0
+    INTENT(OUT) :: u, v
 
     WRITE(*,*) 'SOLVING EQUATIONS (PRANDTL)'
 
@@ -299,11 +301,11 @@ SUBROUTINE SolverPrandtl(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v)
     END SUBROUTINE
 
 
-SUBROUTINE SolverNavierStokes(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v, p, a, dt)
+SUBROUTINE SolverNavierStokes(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v, p, a, dt, io)
     !Solver for Navier-Stokes system of equations
     IMPLICIT NONE
     REAL(8), EXTERNAL :: HalfIndexValue, ResidualNavierStokes
-    LOGICAL(1), EXTERNAL :: ConvergenceCheckNavierStokes
+    INTEGER(2) :: io
     INTEGER(4) :: i, j, ni, nj, s, s_max
     REAL(8) :: u_hat_left, u_hat_right
     REAL(8) :: v_hat_top, v_hat_bot
@@ -312,10 +314,13 @@ SUBROUTINE SolverNavierStokes(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v, p, a, d
     REAL(8) :: p_left, p_right, p_top, p_bot
     REAL(8) :: dx, dy, nu, eps, u_0, a, dt, res_u, res_v, res_p 
     REAL(8), DIMENSION(0:ni,0:nj) :: u_old, v_old, p_old, u, v, p
-    INTENT(IN) ni, nj, s_max, dx, dy, nu, eps, u_0, a, dt
+    INTENT(IN) ni, nj, s_max, dx, dy, nu, eps, u_0, a, dt, io
     INTENT(OUT) u, v, p
 
     WRITE(*,*) 'SOLVING EQUATIONS (NAVIER-STOKES)'
+
+    OPEN(io, FILE='RESIDUAL_LOGS.plt')
+    WRITE(io,*) 'VARIABLES = "S", "RES_U", "RES_V", "RES_P"'
 
     DO s = 1, s_max
 
@@ -365,17 +370,17 @@ SUBROUTINE SolverNavierStokes(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v, p, a, d
 
         CALL BoundaryConditionsNavierStokes(ni, nj, u_0, u, v, p)
 
-        res_u = ResidualNavierStokes(u, u_old, ni, nj, dt)
-        res_v = ResidualNavierStokes(v, v_old, ni, nj, dt)
-        res_p = ResidualNavierStokes(p, p_old, ni, nj, dt)
+        res_u = ResidualNavierStokes(u(1:ni - 1, 1:nj - 1), u_old(1:ni - 1, 1:nj - 1), ni - 1, nj - 1, dt)
+        res_v = ResidualNavierStokes(v(1:ni - 1, 1:nj - 1), v_old(1:ni - 1, 1:nj - 1), ni - 1, nj - 1, dt)
+        res_p = ResidualNavierStokes(p(1:ni - 1, 1:nj - 1), p_old(1:ni - 1, 1:nj - 1), ni - 1, nj - 1, dt) * a
+        
+        IF (s > 2) THEN
+            WRITE(io,*) s, res_u, res_v, res_p
+        END IF
 
-        ! CALL ResidualLogs(1, s, res_u, res_v, res_p)
-
-        IF (ConvergenceCheckNavierStokes(u, u_old, ni, nj, eps, dt) &
-            .OR. ConvergenceCheckNavierStokes(v, v_old, ni, nj, eps, dt) &
-            .OR. ConvergenceCheckNavierStokes(p, p_old, ni, nj, eps, dt)) THEN
-                WRITE(*,*) 'SOLUTION CONVERGED BY RESIDUALS'
-                EXIT
+        IF ((res_u < eps) .AND. (res_v < eps) .AND. (res_p < eps) .AND. (s > 1)) THEN
+            WRITE(*,*) 'SOLUTION CONVERGED BY RESIDUALS'
+            EXIT
         END IF
 
         IF (MOD(s,100) == 0) THEN
@@ -387,6 +392,8 @@ SUBROUTINE SolverNavierStokes(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v, p, a, d
         END IF
 
     END DO
+
+    CLOSE(io)
 
     WRITE(*,*) 'SUCCESS'
 
@@ -449,22 +456,9 @@ SUBROUTINE OutputFieldsNode(io, ni, nj, x, y, u, v, p)
     END SUBROUTINE 
 
 
-SUBROUTINE ResidualLogs(io, s, res_u, res_v, res_p)
-    ! Nodes-based results output
-    IMPLICIT NONE
-    INTEGER(2) :: io
-    REAL(8) :: s, res_u, res_v, res_p
-    INTENT(IN) io, res_u, res_v, res_p, s
-     
-    OPEN(io,FILE='RESIDUALS.PLT')
-    WRITE(io,*) 'VARIABLES = "ITER", "RES_U", "RES_V", "RES_P"' 
-    WRITE(io,'(100E25.16)') s, res_u, res_v, res_p
-    CLOSE(io)
-
-    END SUBROUTINE
-
-
 LOGICAL(1) FUNCTION ConvergenceCheckPrandtl(a, b, n, eps)
+    !Convergence check for iteration process of solving
+    !system of Prandtl equations
     IMPLICIT NONE
     REAL(8), EXTERNAL :: ResidualPrandtl
     REAL(8), DIMENSION(n) :: a, b
@@ -476,19 +470,8 @@ LOGICAL(1) FUNCTION ConvergenceCheckPrandtl(a, b, n, eps)
     END FUNCTION
 
 
-LOGICAL(1) FUNCTION ConvergenceCheckNavierStokes(a, b, ni, nj, eps, dt)
-    IMPLICIT NONE
-    REAL(8), EXTERNAL :: ResidualNavierStokes
-    REAL(8), DIMENSION(ni, nj) :: a, b, dif
-    REAL(8) :: eps, dt
-    INTEGER(4) :: ni, nj
-
-    ConvergenceCheckNavierStokes = (ResidualNavierStokes(a, b, ni, nj, dt) < eps)
-
-    END FUNCTION
-
-
 REAL(8) FUNCTION HalfIndexValue(arg, minus_res, plus_res)
+    !Upwind scheme direction definition 
     IMPLICIT NONE
     REAL(8) :: arg, minus_res, plus_res
 
@@ -502,6 +485,7 @@ REAL(8) FUNCTION HalfIndexValue(arg, minus_res, plus_res)
 
 
 REAL(8) FUNCTION ResidualPrandtl(a, b, n)
+    !Calculation residuals for Prandtl system of equations
     IMPLICIT NONE
     REAL(8), DIMENSION(n) :: a, b, dif
     INTEGER(4) :: i, n
@@ -516,6 +500,7 @@ REAL(8) FUNCTION ResidualPrandtl(a, b, n)
 
 
 REAL(8) FUNCTION ResidualNavierStokes(a, b, ni, nj, dt)
+    !Calculation residuals for Navier-Stokes system of equations
     IMPLICIT NONE
     REAL(8), DIMENSION(ni, nj) :: a, b, dif
     REAL(8) :: dt
@@ -523,7 +508,7 @@ REAL(8) FUNCTION ResidualNavierStokes(a, b, ni, nj, dt)
 
     DO i = 1, ni
         DO j = 1, nj
-            dif(i,j) = abs(a(i,j) - b(i,j)) / abs(a(i,j))
+            dif(i,j) = abs(a(i,j) - b(i,j))
         END DO
     END DO
 
