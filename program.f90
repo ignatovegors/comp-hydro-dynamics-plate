@@ -354,17 +354,17 @@ SUBROUTINE SolverNavierStokes(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v, p, a, d
                 v_bot = HalfIndexValue(v_hat_bot, v(i, j), v(i,j - 1))
                 p_bot = HalfIndexValue(v_hat_bot, p(i, j - 1), p(i,j))
 
-                p(i,j) = p(i,j) - dt * ((u_right - u_left) / dx + (v_top - v_bot) / dy) / a
+                p(i,j) = p(i,j) - dt / a * ((u_right - u_left) / dx + (v_top - v_bot) / dy)
                 u(i,j) = u(i,j) - dt * ((u_hat_right * u_right - u_hat_left * u_left) / dx &
                     + (v_hat_top * u_top - v_hat_bot * u_bot) / dy &
                     + (p_right - p_left) / dx &
-                    - nu * (u(i + 1, j) - 2 * u(i,j) + u(i - 1, j)) / dx ** 2 &
-                    - nu * (u(i, j + 1) - 2 * u(i,j) + u(i, j - 1)) / dy ** 2 )
+                    - nu * (u(i + 1, j) - 2D0 * u(i,j) + u(i - 1, j)) / dx ** 2 &
+                    - nu * (u(i, j + 1) - 2D0 * u(i,j) + u(i, j - 1)) / dy ** 2 )
                 v(i,j) = v(i,j) - dt * ((u_hat_right * v_right - u_hat_left * v_left) / dx &
                     + (v_hat_top * v_top - v_hat_bot * v_bot) / dy &
                     + (p_top - p_bot) / dy &
-                    - nu * (v(i + 1, j) - 2 * v(i,j) + v(i - 1, j)) / dx ** 2 &
-                    - nu * (v(i, j + 1) - 2 * v(i,j) + v(i, j - 1)) / dy ** 2 )
+                    - nu * (v(i + 1, j) - 2D0 * v(i,j) + v(i - 1, j)) / dx ** 2 &
+                    - nu * (v(i, j + 1) - 2D0 * v(i,j) + v(i, j - 1)) / dy ** 2 )
 
             END DO
         END DO
