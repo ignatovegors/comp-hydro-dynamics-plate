@@ -243,17 +243,17 @@ SUBROUTINE SolverPrandtl(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v)
     LOGICAL(1), EXTERNAL :: ConvergenceCheckPrandtl
     INTEGER(4) :: i, j, s, ni, nj, s_max
     REAL(8) :: dx, dy, nu, eps, u_0
-    REAL(8), DIMENSION(ni,nj) :: u, v
-    REAL(8), DIMENSION(nj) :: u_temp, v_temp, a, b, c, d
+    REAL(8), DIMENSION(ni,nj) :: u, v, u_temp, v_temp
+    REAL(8), DIMENSION(nj) :: a, b, c, d
     INTENT(IN) :: ni, nj, s_max, dx, dy, nu, eps, u_0
     INTENT(OUT) :: u, v
 
     WRITE(*,*) 'SOLVING EQUATIONS (PRANDTL)'
-
+! i = 2
     DO i = 2, ni
             
-        u_temp = u(i - 1, :)
-        v_temp = v(i - 1, :)
+        u_temp = u
+        v_temp = v
 
         DO s = 1, s_max
 
@@ -263,10 +263,10 @@ SUBROUTINE SolverPrandtl(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v)
             d(1) = 0D0
 
             DO j = 2, nj - 1
-                a(j) = - v_temp(j - 1) / (2D0 * dy) - nu / dy**2
-                b(j) = u_temp(j) / dx + 2D0 * nu / dy**2
-                c(j) = v_temp(j + 1) / (2D0 * dy) - nu / dy**2
-                d(j) = u(i - 1, j)**2D0 / dx
+                a(j) = - v(i, j - 1) / (2D0 * dy) - nu / dy**2
+                b(j) = u(i, j) / dx + 2D0 * nu / dy**2
+                c(j) = v(i, j + 1) / (2D0 * dy) - nu / dy**2
+                d(j) = u(i - 1, j)**2 / dx
             END DO
 
             a(nj) = 0D0
@@ -277,16 +277,17 @@ SUBROUTINE SolverPrandtl(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v)
             CALL ThomasAlgorithm(nj, a, b, c, d, u(i, :))
 
             DO j = 2, nj
-                v(i,j) = v(i, j - 1) - dy / (2 * dx) * (u(i,j) - u(i - 1, j) + u(i, j - 1) - u(i - 1, j - 1))
+                v(i,j) = v(i, j - 1) - dy / (2D0 * dx) * (u(i, j) - u_temp(i - 1,j) + u(i, j - 1) - u_temp(i - 1, j - 1))
             END DO    
             
-            IF ((ConvergenceCheckPrandtl(u(i, :), u_temp, nj, eps)) .AND. (ConvergenceCheckPrandtl(v(i, :), v_temp, nj, eps))) THEN
+            IF ((ConvergenceCheckPrandtl(u(i, :), u_temp(i, :), nj, eps)) .AND. &
+                    (ConvergenceCheckPrandtl(v(i, :), v_temp(i, :), nj, eps))) THEN
                 WRITE(*,*) 'SOLUTION CONVERGED BY RESIDUALS, NODE №', I, ', s = ', s
                 EXIT 
             END IF
 
-            u_temp = u(i, :)
-            v_temp = v(i, :)
+            u_temp = u
+            v_temp = v
 
             IF (s == s_max) THEN
                 WRITE(*,*) 'SOLUTION CONVERGED BY ITERATIONS BOUNDARY, NODE №', I
