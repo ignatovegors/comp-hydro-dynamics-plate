@@ -43,6 +43,8 @@ PROGRAM platePrandtlNavierStokes
 
     CALL OutputFieldsCell(io, ni, nj, x_cell, y_cell, u_c, v_c, p_c)
 
+    CALL WallFriction(u_n(:,2), dx, dy, ni, nu, u_0)
+
     DEALLOCATE(x_node)
     DEALLOCATE(y_node)
     DEALLOCATE(x_cell)
@@ -313,7 +315,7 @@ SUBROUTINE SolverNavierStokes(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v, p, a, d
     REAL(8) :: u_left, u_right, u_top, u_bot
     REAL(8) :: v_left, v_right, v_top, v_bot
     REAL(8) :: p_left, p_right, p_top, p_bot
-    REAL(8) :: dx, dy, nu, eps, u_0, a, dt, res_u, res_v, res_p 
+    REAL(8) :: dx, dy, nu, eps, u_0, a, dt, res_u, res_v, res_p, res_u_0, res_v_0, res_p_0 
     REAL(8), DIMENSION(0:ni,0:nj) :: u_old, v_old, p_old, u, v, p
     INTENT(IN) ni, nj, s_max, dx, dy, nu, eps, u_0, a, dt, io
     INTENT(OUT) u, v, p
@@ -371,9 +373,15 @@ SUBROUTINE SolverNavierStokes(ni, nj, s_max, dx, dy, nu, eps, u_0, u, v, p, a, d
 
         CALL BoundaryConditionsNavierStokes(ni, nj, u_0, u, v, p)
 
-        res_u = ResidualNavierStokes(u(1:ni - 1, 1:nj - 1), u_old(1:ni - 1, 1:nj - 1), ni - 1, nj - 1, dt)
-        res_v = ResidualNavierStokes(v(1:ni - 1, 1:nj - 1), v_old(1:ni - 1, 1:nj - 1), ni - 1, nj - 1, dt)
-        res_p = ResidualNavierStokes(p(1:ni - 1, 1:nj - 1), p_old(1:ni - 1, 1:nj - 1), ni - 1, nj - 1, dt) * a
+        IF (s == 3) THEN
+            res_u_0 = ResidualNavierStokes(u(1:ni - 1, 1:nj - 1), u_old(1:ni - 1, 1:nj - 1), ni - 1, nj - 1, dt)
+            res_v_0 = ResidualNavierStokes(v(1:ni - 1, 1:nj - 1), v_old(1:ni - 1, 1:nj - 1), ni - 1, nj - 1, dt)
+            res_p_0 = ResidualNavierStokes(p(1:ni - 1, 1:nj - 1), p_old(1:ni - 1, 1:nj - 1), ni - 1, nj - 1, dt) * a
+        END IF
+
+        res_u = ResidualNavierStokes(u(1:ni - 1, 1:nj - 1), u_old(1:ni - 1, 1:nj - 1), ni - 1, nj - 1, dt) / res_u_0
+        res_v = ResidualNavierStokes(v(1:ni - 1, 1:nj - 1), v_old(1:ni - 1, 1:nj - 1), ni - 1, nj - 1, dt) / res_v_0
+        res_p = ResidualNavierStokes(p(1:ni - 1, 1:nj - 1), p_old(1:ni - 1, 1:nj - 1), ni - 1, nj - 1, dt) * a / res_p_0
         
         IF (s > 2) THEN
             WRITE(io,*) s, res_u, res_v, res_p
@@ -455,6 +463,25 @@ SUBROUTINE OutputFieldsNode(io, ni, nj, x, y, u, v, p)
     WRITE(*,*) 'SUCCESS'
 
     END SUBROUTINE 
+
+
+SUBROUTINE WallFriction(u_wall, dx, dy, ni, nu, u_0)
+    ! Wall friction coefficient output
+    IMPLICIT NONE
+    INTEGER(4) :: ni, i
+    REAL(8) :: dx, dy, nu, u_0
+    REAL(8), DIMENSION(ni) :: u_wall
+
+    OPEN(1,FILE='WALLFRIC.PLT')
+
+    DO i = 2, ni
+        WRITE(1,*) dx * (i - 1), ',', 2D0 * nu * u_wall(i) / (dy * u_0 * u_0), ',', &
+            664D-3 / DSQRT(dx * (i - 1) * u_0 / nu)
+    END DO
+
+    CLOSE(1)
+    
+    END SUBROUTINE
 
 
 LOGICAL(1) FUNCTION ConvergenceCheckPrandtl(a, b, n, eps)
